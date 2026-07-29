@@ -15,6 +15,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.7'
+
       - name: Build debug APK
         working-directory: SmartCalc
         run: gradle assembleDebug
@@ -22,3 +23,25 @@ jobs:
         with:
           name: SmartCalc-debug-apk
           path: SmartCalc/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Decode keystore
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > SmartCalc/app/release-keystore.jks
+
+      - name: Build signed release AAB (for Play Store)
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        working-directory: SmartCalc
+        env:
+          KEYSTORE_PATH: release-keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: gradle bundleRelease
+
+      - name: Upload release AAB
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartCalc-release-aab
+          path: SmartCalc/app/build/outputs/bundle/release/app-release.aab

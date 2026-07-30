@@ -3,6 +3,8 @@ on: [push, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 }}
     steps:
       - uses: actions/checkout@v4
       - name: Unzip project
@@ -25,12 +27,12 @@ jobs:
           path: SmartCalc/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Decode keystore
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: ${{ env.HAS_KEYSTORE != '' }}
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > SmartCalc/app/release-keystore.jks
 
       - name: Build signed release AAB (for Play Store)
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: ${{ env.HAS_KEYSTORE != '' }}
         working-directory: SmartCalc
         env:
           KEYSTORE_PATH: release-keystore.jks
@@ -40,7 +42,7 @@ jobs:
         run: gradle bundleRelease
 
       - name: Upload release AAB
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: ${{ env.HAS_KEYSTORE != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: SmartCalc-release-aab
